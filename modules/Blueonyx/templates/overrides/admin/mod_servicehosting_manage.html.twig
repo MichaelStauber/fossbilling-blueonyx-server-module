@@ -2,6 +2,7 @@
 
 {% set server = service.server %}
 {% set hp = service.hosting_plan %}
+{% set order_actions = order_actions|default('') %}
 
 <div class="card-body">
     <div class="mb-3">
@@ -21,7 +22,7 @@
         </tr>
         <tr>
             <td class="text-end">{{ 'Server Name'|trans }}:</td>
-            <td><a href='{{ "servicehosting/server/#{server.id}"|url }}'>{{ server.name }}</a></td>
+            <td><a href='{{ (server.manager|default('') == 'Blueonyx' ? "blueonyx/server/#{server.id}" : "servicehosting/server/#{server.id}")|url }}'>{{ server.name }}</a></td>
         </tr>
         <tr>
             <td class="text-end">{{ 'Hosting Plan'|trans }}:</td>
@@ -86,7 +87,7 @@
             <span>{{ 'Reseller control panel'|trans }}</span>
         </a>
     {% endif %}
-    <a class="btn btn-primary" href="{{ 'servicehosting/sync'|api_url(query: { 'order_id': order.id }) }}"
+    <a class="btn btn-primary" href="{{ (server.manager|default('') == 'Blueonyx' ? 'blueonyx/order_sync' : 'servicehosting/sync')|api_url(query: { 'order_id': order.id }) }}"
         {{ fb_api_link({modal: {type: 'confirm', title: 'Are you sure?'|trans}, message: 'Account Synced'|trans}) }}>
         <svg class="icon">
             <use xlink:href="#refresh" />
@@ -102,7 +103,7 @@
             <p class="text-secondary mb-0">{{ 'Move this account onto a different hosting plan available on the current server.'|trans }}</p>
         </div>
 
-        <form method="post" action="{{ 'servicehosting/change_plan'|api_url }}" {{ fb_api_form({callback: 'onAfterHostingPlanChanged', timeoutMs: 180000}) }}>
+        <form method="post" action="{{ (server.manager|default('') == 'Blueonyx' ? 'blueonyx/order_change_plan' : 'servicehosting/change_plan')|api_url }}" {{ fb_api_form({callback: 'onAfterHostingPlanChanged', timeoutMs: 180000}) }}>
             <div class="row g-3">
                 <div class="col-lg-6">
                     <label class="form-label">{{ 'New Hosting Plan'|trans }}</label>
@@ -125,7 +126,7 @@
             <p class="text-secondary mb-0">{{ 'Set a new password for the hosting account on the remote server.'|trans }}</p>
         </div>
 
-        <form method="post" action="{{ 'servicehosting/change_password'|api_url }}" {{ fb_api_form({message: 'Account Password Changed'|trans}) }}>
+        <form method="post" action="{{ (server.manager|default('') == 'Blueonyx' ? 'blueonyx/order_change_password' : 'servicehosting/change_password')|api_url }}" {{ fb_api_form({message: 'Account Password Changed'|trans}) }}>
             <div class="row g-3">
                 <div class="col-lg-6">
                     <label class="form-label">{{ 'Password'|trans }}</label>
@@ -152,7 +153,7 @@
             <p class="text-secondary mb-0">{{ 'Update the primary IP address assigned to the hosting account.'|trans }}</p>
         </div>
 
-        <form method="post" action="{{ 'servicehosting/change_ip'|api_url }}" {{ fb_api_form({message: 'Account IP Changed'|trans}) }}>
+        <form method="post" action="{{ (server.manager|default('') == 'Blueonyx' ? 'blueonyx/order_change_ip' : 'servicehosting/change_ip')|api_url }}" {{ fb_api_form({message: 'Account IP Changed'|trans}) }}>
             <div class="row g-3">
                 <div class="col-lg-6">
                     <label class="form-label">{{ 'IP'|trans }}</label>
@@ -204,7 +205,7 @@
             <p class="text-secondary mb-0">{{ 'Update the domain assigned to the hosting account.'|trans }}</p>
         </div>
 
-        <form method="post" action="{{ 'servicehosting/change_domain'|api_url }}" {{ fb_api_form({message: 'Account Domain Changed'|trans}) }}>
+        <form method="post" action="{{ (server.manager|default('') == 'Blueonyx' ? 'blueonyx/order_change_domain' : 'servicehosting/change_domain')|api_url }}" {{ fb_api_form({message: 'Account Domain Changed'|trans}) }}>
             <div class="row g-3">
                 <div class="col-lg-8">
                     <label class="form-label">{{ 'Domain'|trans }}</label>

@@ -252,7 +252,7 @@
         <div class="modal modal-blur fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered modal-sm">
                 <div class="modal-content">
-                    <form method="post" action="{{ 'order/delete'|api_url }}" {{ fb_api_form({ redirect: 'order'|url, timeoutMs: 180000 }) }}>
+                    <form method="post" action="{{ 'blueonyx/order_delete'|api_url }}" {{ fb_api_form({ redirect: 'order'|url, timeoutMs: 180000 }) }}>
                         <div class="modal-status bg-danger"></div>
                         <div class="modal-body">
                             <div class="modal-title">{{ 'Are you sure?'|trans }}</div>
@@ -482,7 +482,10 @@
         </div>
 
         <div class="tab-pane fade" id="tab-service" role="tabpanel">
-            {% if guest.system_template_exists({ 'file': service_partial }) %}
+            {% set blueonyx_context = admin.blueonyx_order_context({ 'id': order.id }) %}
+            {% if blueonyx_context.is_blueonyx %}
+                {{ include('mod_servicehosting_manage.html.twig', { 'order': order, 'service': blueonyx_context.service }) }}
+            {% elseif guest.system_template_exists({ 'file': service_partial }) %}
                 {% set service = admin.order_service({ 'id': order.id }) %}
                 {{ include(service_partial, { 'order': order, 'service': service }) }}
             {% elseif order.form_id and guest.extension_is_on({ 'mod': 'formbuilder' }) %}

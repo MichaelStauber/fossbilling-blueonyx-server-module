@@ -28,7 +28,7 @@
                                     x {{ item.quantity }}
                                 {% endif %}
 
-                                {% if item.period %}
+                                {% if item.period is defined and item.period %}
                                     ({{ item.period|period_title }})
                                 {% endif %}
                             </td>

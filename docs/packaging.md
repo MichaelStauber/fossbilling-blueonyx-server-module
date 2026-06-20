@@ -10,8 +10,10 @@ The important top-level paths are:
 - `modules/Blueonyx/` — the FOSSBilling module
 - `library/Server/Manager/Blueonyx.php` — the BlueOnyx server manager
 - `build.sh` — the packaging script
+- `docs/` — release and packaging notes
 - `CHANGELOG.md` — release history
 - `README.md` — end-user documentation
+- `HANDOVER.md` — current working notes for the module
 - `LICENSE` — the canonical repository license text
 
 ## Version source
@@ -32,9 +34,9 @@ The packaging script creates:
 
 - `fossbilling-blueonyx-server-module-<version>.zip`
 
-The ZIP contains the module tree, the server manager, and the release
-documents that belong with the published artifact. In practice that includes
-the module tests and the module packaging note as well.
+The ZIP contains the module tree, the server manager, the release
+documentation, the handover note, and the build script so the package is
+self-describing and reproducible.
 
 ## Release process
 
@@ -42,7 +44,7 @@ the module tests and the module packaging note as well.
 2. Add a matching entry to `CHANGELOG.md`.
 3. Run `./build.sh`.
 4. Verify the ZIP contents.
-5. Create a Git tag such as `v0.1.0`.
+5. Create a Git tag such as `v0.2.0`.
 6. Publish the ZIP as a GitHub Release asset.
 
 ## Practical rules

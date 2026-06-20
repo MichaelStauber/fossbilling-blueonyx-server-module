@@ -4,7 +4,10 @@ This repository contains the BlueOnyx server module for FOSSBilling.
 
 It provides the BlueOnyx hosting plan editor, lifecycle integration for
 BlueOnyx Vsites, customer-facing SSL status and Let's Encrypt actions, and
-the required theme overrides for the FOSSBilling UI.
+the required theme overrides for the FOSSBilling UI. Let’s Encrypt requests
+are queued from the customer interface and processed by the regular
+FOSSBilling admin cron run so that long-running BlueOnyx work does not block
+the browser request.
 
 BlueOnyx project information: https://www.blueonyx.it
 BlueOnyx core repository: https://github.com/MichaelStauber/BlueOnyx
@@ -15,6 +18,7 @@ BlueOnyx core repository: https://github.com/MichaelStauber/BlueOnyx
 - the BlueOnyx server manager under `library/Server/Manager/Blueonyx.php`
 - the release packager in `build.sh`
 - the changelog and release notes
+- the supporting documentation under `docs/`
 
 ## Requirements
 
@@ -42,7 +46,7 @@ This repository follows semantic versioning.
 
 - `modules/Blueonyx/manifest.json` contains the module version
 - `CHANGELOG.md` records user-facing changes
-- Git tags use the form `v<version>`, for example `v0.1.0`
+- Git tags use the form `v<version>`, for example `v0.2.0`
 
 ## Release artifact
 

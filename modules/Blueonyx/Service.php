@@ -49,8 +49,14 @@ use FOSSBilling\Tools;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Filesystem\Path;
 
+$blueonyxManagerFile = Path::join(PATH_LIBRARY, 'Server', 'Manager', 'Blueonyx.php');
+if (is_file($blueonyxManagerFile)) {
+    require_once $blueonyxManagerFile;
+}
+
 class Service implements InjectionAwareInterface
 {
+    private const LE_QUEUE_PARAM = 'blueonyx_pending_le_requests';
     private const SERVER_MANAGER = 'Blueonyx';
 
     private const PHP_HANDLERS = [
@@ -771,7 +777,25 @@ class Service implements InjectionAwareInterface
 
     public function isManagerAvailable(): bool
     {
+        $this->requireServerManagerClass();
+
         return class_exists('Server_Manager_Blueonyx');
+    }
+
+    public function testServicehostingConnection(int $serverId): bool
+    {
+        $this->requireServerManagerClass();
+
+        if (!class_exists('Server_Manager_Blueonyx', false)) {
+            throw new InformationException('BlueOnyx Server Manager class could not be loaded.');
+        }
+
+        $model = $this->di['db']->getExistingModelById('ServiceHostingServer', $serverId, 'Server not found');
+        if (($model->manager ?? '') !== 'Blueonyx') {
+            throw new InformationException('This server does not use the BlueOnyx server manager.');
+        }
+
+        return (bool) $this->di['mod_service']('servicehosting')->testConnection($model);
     }
 
     public function install(): bool
@@ -779,8 +803,11 @@ class Service implements InjectionAwareInterface
         $this->ensureHookListeners();
         $this->deployAdminPartialBbMetaOverride();
         $this->deployAdminOrderManageOverride();
+        $this->deployAdminServicehostingIndexOverride();
         $this->deployAdminServicehostingManageOverride();
+        $this->deployAdminBlueonyxServerOverride();
         $this->deployClientServicehostingManageOverride();
+        $this->deployClientOrderManageOverride();
         $this->deployClientOrderbuttonCheckoutOverride();
         $this->deployClientOrderbuttonJsOverride();
 
@@ -791,8 +818,11 @@ class Service implements InjectionAwareInterface
     {
         $this->removeAdminPartialBbMetaOverride();
         $this->removeAdminOrderManageOverride();
+        $this->removeAdminServicehostingIndexOverride();
         $this->removeAdminServicehostingManageOverride();
+        $this->removeAdminBlueonyxServerOverride();
         $this->removeClientServicehostingManageOverride();
+        $this->removeClientOrderManageOverride();
         $this->removeClientOrderbuttonCheckoutOverride();
         $this->removeClientOrderbuttonJsOverride();
 
@@ -813,6 +843,19 @@ class Service implements InjectionAwareInterface
         }
     }
 
+    private function requireServerManagerClass(): void
+    {
+        if (class_exists('Server_Manager_Blueonyx', false)) {
+            return;
+        }
+
+        $managerFile = Path::join(PATH_LIBRARY, 'Server', 'Manager', 'Blueonyx.php');
+
+        if (is_file($managerFile)) {
+            require_once $managerFile;
+        }
+    }
+
     private function getPhpHandlerOptions(): array
     {
         return self::PHP_HANDLERS;
@@ -823,9 +866,177 @@ class Service implements InjectionAwareInterface
         return self::PHP_VERSIONS;
     }
 
+    public function getOrderContext(int $orderId): array
+    {
+        $order = $this->di['db']->getExistingModelById('ClientOrder', $orderId, 'Order not found');
+        $orderService = $this->di['mod_service']('order');
+        $service = $orderService->getOrderService($order);
+
+        if (!$service instanceof \Model_ServiceHosting) {
+            return [
+                'is_blueonyx' => false,
+                'service' => null,
+            ];
+        }
+
+        $server = $this->di['db']->load('ServiceHostingServer', $service->service_hosting_server_id);
+        $plan = $this->di['db']->load('ServiceHostingHp', $service->service_hosting_hp_id);
+        $manager = trim((string) ($server->manager ?? ''));
+        $isBlueonyx = strcasecmp($manager, self::SERVER_MANAGER) === 0;
+        $hostname = trim((string) ($server->hostname ?? ''));
+        $cpanelHost = $hostname !== '' ? $hostname : (string) ($server->ip ?? '');
+
+        return [
+            'is_blueonyx' => $isBlueonyx,
+            'service' => [
+                'id' => $service->id,
+                'sld' => $service->sld,
+                'tld' => $service->tld,
+                'domain' => $service->sld . $service->tld,
+                'username' => $service->username,
+                'reseller' => $service->reseller,
+                'ip' => $server->ip,
+                'server_id' => $service->service_hosting_server_id,
+                'plan_id' => $service->service_hosting_hp_id,
+                'server' => [
+                    'id' => $server->id,
+                    'name' => $server->name,
+                    'hostname' => $server->hostname,
+                    'ip' => $server->ip,
+                    'manager' => $manager,
+                    'cpanel_url' => 'https://' . $cpanelHost . ':81/',
+                    'reseller_cpanel_url' => null,
+                    'ns1' => $server->ns1,
+                    'ns2' => $server->ns2,
+                    'ns3' => $server->ns3,
+                    'ns4' => $server->ns4,
+                ],
+                'hosting_plan' => [
+                    'id' => $plan->id,
+                    'name' => $plan->name,
+                    'bandwidth' => $plan->bandwidth,
+                    'quota' => $plan->quota,
+                    'max_addon' => $plan->max_addon,
+                    'max_ftp' => $plan->max_ftp,
+                    'max_sql' => $plan->max_sql,
+                    'max_pop' => $plan->max_pop,
+                    'max_sub' => $plan->max_sub,
+                    'max_park' => $plan->max_park,
+                ],
+                'domain_order_id' => $orderService->getRelatedOrderIdByType($order, 'domain'),
+            ],
+        ];
+    }
+
+    public function requestLetsEncryptForOrder(int $orderId): array
+    {
+        $order = $this->di['db']->getExistingModelById('ClientOrder', $orderId, 'Order not found');
+        $orderService = $this->di['mod_service']('order');
+        $service = $orderService->getOrderService($order);
+        if (!$service instanceof \Model_ServiceHosting) {
+            throw new InformationException('BlueOnyx Let\'s Encrypt is only available for hosting services.');
+        }
+
+        $server = $this->di['db']->getExistingModelById('ServiceHostingServer', $service->service_hosting_server_id, 'Server not found');
+        $manager = $this->di['mod_service']('servicehosting')->getServerManager($server);
+        if (!$manager instanceof \Server_Manager_Blueonyx) {
+            throw new InformationException('BlueOnyx server manager not found for this service.');
+        }
+
+        $fqdn = $manager->resolveHostingFqdn($service->sld . $service->tld);
+        $client = $this->di['db']->getExistingModelById('Client', $order->client_id, 'Client not found');
+        $email = trim((string) ($client->email ?? ''));
+        if ($email === '') {
+            throw new InformationException('Client email address is required to request a Let\'s Encrypt certificate.');
+        }
+
+        return $manager->requestLetsEncrypt($fqdn, $email, null, 60, true);
+    }
+
+    public function queueLetsEncryptRequest(int $orderId): array
+    {
+        $queue = $this->getPendingLetsEncryptQueue();
+        if (!in_array($orderId, $queue, true)) {
+            $queue[] = $orderId;
+            $this->storePendingLetsEncryptQueue($queue);
+        }
+
+        return [
+            'queued' => true,
+            'queue_length' => count($queue),
+        ];
+    }
+
     private function getShellOptions(): array
     {
         return self::SHELL_LEVELS;
+    }
+
+    public static function onBeforeAdminCronRun(\Box_Event $event): bool
+    {
+        $di = $event->getDi();
+
+        try {
+            $di['mod_service']('Blueonyx')->processPendingLetsEncryptQueue();
+        } catch (\Throwable $e) {
+            $di['logger']->warning('BlueOnyx LE queue processing failed during cron.', [
+                'exception' => $e->getMessage(),
+            ]);
+        }
+
+        return true;
+    }
+
+    private function processPendingLetsEncryptQueue(): void
+    {
+        $queue = $this->getPendingLetsEncryptQueue();
+        if ($queue === []) {
+            return;
+        }
+
+        $remaining = [];
+        foreach ($queue as $orderId) {
+            try {
+                $this->requestLetsEncryptForOrder((int) $orderId);
+            } catch (\Throwable $e) {
+                $remaining[] = (int) $orderId;
+                $this->di['logger']->warning('BlueOnyx LE request failed during cron processing.', [
+                    'order_id' => (int) $orderId,
+                    'exception' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        $this->storePendingLetsEncryptQueue($remaining);
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function getPendingLetsEncryptQueue(): array
+    {
+        $raw = (string) $this->di['mod_service']('system')->getParamValue(self::LE_QUEUE_PARAM, '[]');
+        $decoded = json_decode($raw, true);
+        if (!is_array($decoded)) {
+            return [];
+        }
+
+        $queue = [];
+        foreach ($decoded as $orderId) {
+            if (is_numeric($orderId) && (int) $orderId > 0) {
+                $queue[] = (int) $orderId;
+            }
+        }
+
+        return array_values(array_unique($queue));
+    }
+
+    /**
+     * @param list<int> $queue
+     */
+    private function storePendingLetsEncryptQueue(array $queue): void
+    {
+        $this->di['mod_service']('system')->setParamValue(self::LE_QUEUE_PARAM, json_encode(array_values(array_unique($queue)), JSON_THROW_ON_ERROR), true);
     }
 
     private function ensureHookListeners(): void
@@ -869,6 +1080,34 @@ class Service implements InjectionAwareInterface
         $this->removeTemplateOverride(Path::join('themes', 'admin_default', 'html_custom', 'mod_servicehosting_manage.html.twig'));
     }
 
+    private function deployAdminBlueonyxServerOverride(): void
+    {
+        $this->deployTemplateOverride(
+            Path::join('templates', 'overrides', 'admin', 'mod_blueonyx_server.html.twig'),
+            Path::join('themes', 'admin_default', 'html_custom', 'mod_blueonyx_server.html.twig'),
+            'BlueOnyx admin server template override source file is missing.'
+        );
+    }
+
+    private function removeAdminBlueonyxServerOverride(): void
+    {
+        $this->removeTemplateOverride(Path::join('themes', 'admin_default', 'html_custom', 'mod_blueonyx_server.html.twig'));
+    }
+
+    private function deployAdminServicehostingIndexOverride(): void
+    {
+        $this->deployTemplateOverride(
+            Path::join('templates', 'overrides', 'admin', 'mod_servicehosting_index.html.twig'),
+            Path::join('themes', 'admin_default', 'html_custom', 'mod_servicehosting_index.html.twig'),
+            'BlueOnyx admin service index template override source file is missing.'
+        );
+    }
+
+    private function removeAdminServicehostingIndexOverride(): void
+    {
+        $this->removeTemplateOverride(Path::join('themes', 'admin_default', 'html_custom', 'mod_servicehosting_index.html.twig'));
+    }
+
     private function deployClientServicehostingManageOverride(): void
     {
         $this->deployTemplateOverride(
@@ -881,6 +1120,20 @@ class Service implements InjectionAwareInterface
     private function removeClientServicehostingManageOverride(): void
     {
         $this->removeTemplateOverride(Path::join('themes', 'huraga', 'html_custom', 'mod_servicehosting_manage.html.twig'));
+    }
+
+    private function deployClientOrderManageOverride(): void
+    {
+        $this->deployTemplateOverride(
+            Path::join('templates', 'overrides', 'client', 'mod_order_manage.html.twig'),
+            Path::join('themes', 'huraga', 'html_custom', 'mod_order_manage.html.twig'),
+            'BlueOnyx client order template override source file is missing.'
+        );
+    }
+
+    private function removeClientOrderManageOverride(): void
+    {
+        $this->removeTemplateOverride(Path::join('themes', 'huraga', 'html_custom', 'mod_order_manage.html.twig'));
     }
 
     private function deployClientOrderbuttonCheckoutOverride(): void

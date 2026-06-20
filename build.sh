@@ -18,8 +18,10 @@ fi
 for required in \
   "${ROOT_DIR}/README.md" \
   "${ROOT_DIR}/CHANGELOG.md" \
+  "${ROOT_DIR}/HANDOVER.md" \
   "${ROOT_DIR}/LICENSE" \
   "${ROOT_DIR}/SUN-modified-BSD-License.txt" \
+  "${ROOT_DIR}/docs" \
   "${ROOT_DIR}/modules/Blueonyx" \
   "${ROOT_DIR}/library/Server/Manager/Blueonyx.php"
 do
@@ -37,8 +39,11 @@ cd "${ROOT_DIR}"
 zip -r "${ZIP_PATH}" \
   README.md \
   CHANGELOG.md \
+  HANDOVER.md \
   LICENSE \
   SUN-modified-BSD-License.txt \
+  build.sh \
+  docs \
   modules/Blueonyx \
   library/Server/Manager/Blueonyx.php
 

@@ -93,7 +93,7 @@
             </div>
             <div class="tab-pane fade" role="tabpanel" id="password">
                 <h3>{{ 'Change Your Control Panel/FTP/SSH Password'|trans }}</h3>
-                <form action="{{ 'servicehosting/change_password'|api_url }}" method="post" {{ fb_api_form({message: 'Password Changed'|trans}) }}>
+                <form action="{{ 'blueonyx/order_change_password'|api_url }}" method="post" {{ fb_api_form({message: 'Password Changed'|trans}) }}>
                     <fieldset>
                         <div class="control-group">
                             <label class="col-form-label" >{{ 'Password'|trans }}: </label>
@@ -118,7 +118,7 @@
             </div>
             <div class="tab-pane fade" role="tabpanel" id="domain">
                 <h3>{{ 'Change Domain'|trans }}</h3>
-                <form action="{{ 'servicehosting/change_domain'|api_url }}" method="post" {{ fb_api_form({message: 'Domain Name Changed'|trans}) }}>
+                <form action="{{ 'blueonyx/order_change_domain'|api_url }}" method="post" {{ fb_api_form({message: 'Domain Name Changed'|trans}) }}>
                     <fieldset>
                         <div class="control-group">
                             <label class="col-form-label" >{{ 'New Domain'|trans }}: </label>

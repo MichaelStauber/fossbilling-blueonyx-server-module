@@ -28,9 +28,9 @@ declare(strict_types=1);
  * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
  * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
  * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY
+ * WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
  *
  * You acknowledge that this software is not designed or intended for
  * use in the design, construction, operation or maintenance of any
@@ -55,8 +55,22 @@ class Admin implements \FOSSBilling\InjectionAwareInterface
         return $this->di;
     }
 
+    private function ensureServerManagerLoaded(): void
+    {
+        if (class_exists('Server_Manager_Blueonyx', false)) {
+            return;
+        }
+
+        $managerFile = PATH_LIBRARY . '/Server/Manager/Blueonyx.php';
+        if (is_file($managerFile)) {
+            require_once $managerFile;
+        }
+    }
+
     public function fetchNavigation(): array
     {
+        $this->ensureServerManagerLoaded();
+
         return [
             'subpages' => [
                 [
@@ -72,9 +86,12 @@ class Admin implements \FOSSBilling\InjectionAwareInterface
 
     public function register(\Box_App &$app): void
     {
+        $this->ensureServerManagerLoaded();
+
         $app->get('/blueonyx', 'get_index', [], static::class);
         $app->get('/blueonyx/plan/new', 'get_plan_new', [], static::class);
         $app->get('/blueonyx/plan/:id', 'get_plan', ['id' => '[0-9]+'], static::class);
+        $app->get('/blueonyx/server/:id', 'get_server', ['id' => '[0-9]+'], static::class);
     }
 
     public function get_index(\Box_App $app): string
@@ -114,5 +131,50 @@ class Admin implements \FOSSBilling\InjectionAwareInterface
             'sections' => $service->getFieldSections(),
             'mode' => $plan['state'] === 'unmarked' ? 'adopt' : 'edit',
         ]);
+    }
+
+    public function get_server(\Box_App $app, $id): string
+    {
+        $this->di['mod_service']('Staff')->checkPermissionsAndThrowException('blueonyx', 'manage');
+
+        $server = $this->loadServerForEdit((int) $id);
+        if (($server['manager'] ?? '') !== 'Blueonyx') {
+            throw new \FOSSBilling\InformationException('This server does not use the BlueOnyx server manager.');
+        }
+
+        return $app->render('mod_blueonyx_server', [
+            'server' => $server,
+        ]);
+    }
+
+    private function loadServerForEdit(int $id): array
+    {
+        $model = $this->di['db']->getExistingModelById('ServiceHostingServer', $id, 'Server not found');
+        $config = json_decode($model->config ?? '', true) ?? [];
+
+        return [
+            'id' => $model->id,
+            'name' => $model->name,
+            'hostname' => $model->hostname,
+            'ip' => $model->ip,
+            'active' => (bool) $model->active,
+            'assigned_ips' => json_decode($model->assigned_ips ?? '[]', true) ?? [],
+            'port' => $model->port,
+            'secure' => (bool) $model->secure,
+            'passwordLength' => $model->passwordLength,
+            'ns1' => $model->ns1,
+            'ns2' => $model->ns2,
+            'ns3' => $model->ns3,
+            'ns4' => $model->ns4,
+            'manager' => $model->manager,
+            'username' => $model->username,
+            'password' => $model->password,
+            'accesshash' => $model->accesshash,
+            'config' => $config,
+            'status_url' => $model->status_url,
+            'max_accounts' => $model->max_accounts,
+            'cpanel_url' => 'https://' . ($model->hostname ?: $model->ip) . ':81/',
+            'reseller_cpanel_url' => '',
+        ];
     }
 }

@@ -96,13 +96,13 @@
                                         <input class="form-check-input" id="plan-{{ field.name }}" type="checkbox" name="{{ field.name }}" value="1" {% if field_value == '1' or field_value is same as(true) %}checked{% endif %} {% if plan.state == 'foreign' %}disabled{% endif %}>
                                         <label class="form-check-label" for="plan-{{ field.name }}">{{ field.label }}</label>
                                     </div>
-                                    {% if field.help %}
+                                    {% if field.help is defined and field.help %}
                                         <div class="form-text">{{ field.help }}</div>
                                     {% endif %}
                                 {% else %}
                                     <input class="form-control" id="plan-{{ field.name }}" type="{{ field.type }}" name="{{ field.name }}" value="{{ field_value }}" {% if field.min is defined %}min="{{ field.min }}"{% endif %} {% if plan.state == 'foreign' %}disabled{% endif %} {% if field.required|default(false) %}required{% endif %}>
                                 {% endif %}
-                                {% if field.help and field.type != 'checkbox' %}
+                                {% if field.help is defined and field.help and field.type != 'checkbox' %}
                                     <div class="form-text">{{ field.help }}</div>
                                 {% endif %}
                             </div>
