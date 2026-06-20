@@ -1,0 +1,168 @@
+{% extends 'layout_default.html.twig' %}
+
+{% block meta_title %}{{ plan.title|default(plan.name) }}{% endblock %}
+
+{% set active_menu = 'system' %}
+
+{% block breadcrumbs %}
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ '/'|url }}"><svg class="icon"><use xlink:href="#home" /></svg></a></li>
+        <li class="breadcrumb-item"><a href="{{ 'blueonyx'|url }}">{{ 'BlueOnyx'|trans }}</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{{ plan.name }}</li>
+    </ol>
+{% endblock %}
+
+{% block content %}
+<div class="p-3 d-flex flex-column gap-3">
+    {% if plan.manager_available is defined and not plan.manager_available %}
+        <div class="alert alert-warning">
+            {{ plan.manager_message|default('BlueOnyx Server Manager is not installed on this system.')|trans }}
+        </div>
+    {% endif %}
+    <div class="card">
+        <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div>
+                <h1 class="h4 mb-1">{{ plan.title|default(plan.name) }}</h1>
+                <div class="text-secondary">
+                    {% if plan.state == 'blueonyx' %}
+                        {{ 'This plan is already marked for the BlueOnyx manager.'|trans }}
+                    {% elseif plan.state == 'unmarked' %}
+                        {{ 'This plan is currently generic. Saving it will adopt it for BlueOnyx.'|trans }}
+                    {% elseif plan.state == 'foreign' %}
+                        {{ 'This plan is assigned to another manager and is read-only here.'|trans }}
+                    {% else %}
+                        {{ 'Create a new BlueOnyx plan with the fields below.'|trans }}
+                    {% endif %}
+                </div>
+            </div>
+            <div class="d-flex gap-2">
+                <a class="btn btn-outline-secondary" href="{{ 'blueonyx'|url }}">{{ 'Back to list'|trans }}</a>
+                {% if plan.id %}
+                    <a class="btn btn-outline-secondary" href="{{ 'servicehosting/plan/' ~ plan.id|url }}">{{ 'Open generic view'|trans }}</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {% if plan.extra_config|length > 0 %}
+        <div class="alert alert-info">
+            <div class="fw-semibold mb-1">{{ 'Unmanaged plan parameters will be preserved'|trans }}</div>
+            <div class="small">{{ 'These configuration keys are stored on the plan but not edited by the BlueOnyx form.'|trans }}</div>
+        </div>
+    {% endif %}
+
+    {% if plan.state == 'foreign' %}
+        <div class="alert alert-danger">
+            {{ 'This plan uses a different server manager. Use the generic Servicehosting page if you need to inspect it, or adopt it explicitly before editing.'|trans }}
+        </div>
+    {% endif %}
+
+    {% set form_options = mode == 'create' ? {redirect: 'blueonyx'|url} : {reload: true} %}
+    <form method="post" action="{{ (mode == 'create' ? 'blueonyx/plan_create' : mode == 'adopt' ? 'blueonyx/plan_adopt' : 'blueonyx/plan_update')|api_url }}" {{ fb_api_form(form_options) }}>
+        <input type="hidden" name="id" value="{{ plan.id|default('') }}">
+        <input type="hidden" name="server_manager" value="Blueonyx">
+        {% if plan.hidden_native is defined %}
+            {% for key, value in plan.hidden_native %}
+                <input type="hidden" name="{{ key }}" value="{{ value }}">
+            {% endfor %}
+        {% endif %}
+        {% embed 'partial_admin_form_card.html.twig' with {
+            title: plan.title|default(plan.name),
+            subtitle: 'Edit the FOSSBilling limits and BlueOnyx-specific package settings for this plan.'|trans,
+            card_class: 'mb-0'
+        } %}
+            {% block form_content %}
+                {% for section in sections %}
+                    <div class="d-flex flex-column gap-1 mt-3 mb-3">
+                        <h6 class="card-title mb-0">{{ section.title }}</h6>
+                        <p class="text-secondary mb-0">{{ section.description }}</p>
+                    </div>
+                    <div class="row g-3">
+                        {% for field in section.fields %}
+                            {% set field_value = plan.values[field.name]|default('') %}
+                            <div class="{{ field.col|default('col-lg-4') }}{% if field.depends_on is defined %} d-none{% endif %}"{% if field.depends_on is defined %} data-blueonyx-dependent="{{ field.depends_on }}"{% endif %}>
+                                {% if field.type != 'checkbox' %}
+                                    <label class="form-label" for="plan-{{ field.name }}">{{ field.label }}</label>
+                                {% endif %}
+                                {% if field.type == 'select' %}
+                                    <select class="form-select" id="plan-{{ field.name }}" name="{{ field.name }}" {% if plan.state == 'foreign' %}disabled{% endif %} {% if field.required|default(false) %}required{% endif %}>
+                                        {% for option_value, option_label in field.options %}
+                                            <option value="{{ option_value }}" {% if field_value == option_value %}selected{% endif %}>{{ option_label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                {% elseif field.type == 'checkbox' %}
+                                    <input type="hidden" name="{{ field.name }}" value="0">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" id="plan-{{ field.name }}" type="checkbox" name="{{ field.name }}" value="1" {% if field_value == '1' or field_value is same as(true) %}checked{% endif %} {% if plan.state == 'foreign' %}disabled{% endif %}>
+                                        <label class="form-check-label" for="plan-{{ field.name }}">{{ field.label }}</label>
+                                    </div>
+                                    {% if field.help %}
+                                        <div class="form-text">{{ field.help }}</div>
+                                    {% endif %}
+                                {% else %}
+                                    <input class="form-control" id="plan-{{ field.name }}" type="{{ field.type }}" name="{{ field.name }}" value="{{ field_value }}" {% if field.min is defined %}min="{{ field.min }}"{% endif %} {% if plan.state == 'foreign' %}disabled{% endif %} {% if field.required|default(false) %}required{% endif %}>
+                                {% endif %}
+                                {% if field.help and field.type != 'checkbox' %}
+                                    <div class="form-text">{{ field.help }}</div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+            {% endblock %}
+
+            {% block form_actions %}
+                {% if plan.state != 'foreign' and (plan.manager_available is not defined or plan.manager_available) %}
+                    <button class="btn btn-primary" type="submit">{{ plan.submit_label|default('Save plan') }}</button>
+                {% endif %}
+            {% endblock %}
+        {% endembed %}
+    </form>
+
+    {% if plan.extra_config|length > 0 %}
+        <div class="card">
+            <div class="card-body">
+                <h6 class="card-title">{{ 'Preserved configuration'|trans }}</h6>
+                <div class="row g-3 mt-2">
+                    {% for key, value in plan.extra_config %}
+                        <div class="col-lg-6">
+                            <div class="border rounded p-3 h-100">
+                                <div class="fw-semibold">{{ key }}</div>
+                                <div class="text-secondary small">{{ value }}</div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const syncDependentFields = () => {
+        document.querySelectorAll('[data-blueonyx-dependent]').forEach((panel) => {
+            const dependency = panel.getAttribute('data-blueonyx-dependent');
+            const toggle = dependency ? document.getElementById(`plan-${dependency}`) : null;
+            const input = panel.querySelector('input, select, textarea');
+
+            if (!toggle || !input) {
+                return;
+            }
+
+            const enabled = toggle.type === 'checkbox' ? toggle.checked : !!toggle.value;
+            panel.classList.toggle('d-none', !enabled);
+            input.disabled = !enabled;
+            if (!enabled && input.type === 'number') {
+                input.value = '0';
+            }
+        });
+    };
+
+    document.querySelectorAll('input[type="checkbox"]').forEach((checkbox) => {
+        checkbox.addEventListener('change', syncDependentFields);
+    });
+
+    syncDependentFields();
+});
+</script>
+{% endblock %}

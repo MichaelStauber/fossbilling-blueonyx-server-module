@@ -1,0 +1,8 @@
+{
+  "id": "blueonyx",
+  "type": "mod",
+  "name": "BlueOnyx Server Module",
+  "description": "FOSSBilling integration for BlueOnyx hosting plans and service management",
+  "license": "Modified BSD",
+  "version": "0.1.0"
+}

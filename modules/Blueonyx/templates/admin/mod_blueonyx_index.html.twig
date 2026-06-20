@@ -1,0 +1,84 @@
+{% extends 'layout_default.html.twig' %}
+
+{% block meta_title %}{{ 'BlueOnyx'|trans }}{% endblock %}
+
+{% set active_menu = 'system' %}
+
+{% block breadcrumbs %}
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ '/'|url }}"><svg class="icon"><use xlink:href="#home" /></svg></a></li>
+        <li class="breadcrumb-item active" aria-current="page">{{ 'BlueOnyx'|trans }}</li>
+    </ol>
+{% endblock %}
+
+{% block content %}
+<div class="p-3 d-flex flex-column gap-3">
+    {% if manager_available is defined and not manager_available %}
+        <div class="alert alert-warning">
+            {{ 'BlueOnyx Server Manager is not installed on this system. Existing plan data can still be reviewed, but plan mutations are disabled.'|trans }}
+        </div>
+    {% endif %}
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div>
+            <h1 class="h3 mb-1">{{ 'BlueOnyx hosting plans'|trans }}</h1>
+            <p class="text-secondary mb-0">{{ 'Create, adopt, and edit BlueOnyx-specific hosting plans without leaving the FOSSBilling admin area.'|trans }}</p>
+        </div>
+        <a class="btn btn-primary" href="{{ 'blueonyx/plan/new'|url }}">{{ 'Create plan'|trans }}</a>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            {% if plans|length > 0 %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>{{ 'Name'|trans }}</th>
+                                <th>{{ 'Status'|trans }}</th>
+                                <th>{{ 'Quota'|trans }}</th>
+                                <th>{{ 'SQL'|trans }}</th>
+                                <th>{{ 'Users'|trans }}</th>
+                                <th class="text-end">{{ 'Actions'|trans }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for plan in plans %}
+                                <tr>
+                                    <td>
+                                        <div class="fw-semibold">{{ plan.name }}</div>
+                                        <div class="text-secondary small">ID {{ plan.id }}</div>
+                                    </td>
+                                    <td>
+                                        {% if plan.state == 'blueonyx' %}
+                                            <span class="badge bg-success">{{ 'BlueOnyx'|trans }}</span>
+                                        {% elseif plan.state == 'unmarked' %}
+                                            <span class="badge bg-warning text-dark">{{ 'Unmarked'|trans }}</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">{{ 'Foreign manager'|trans }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ plan.quota }}</td>
+                                    <td>{{ plan.max_sql }}</td>
+                                    <td>{{ plan.config.maxusers is defined ? plan.config.maxusers : plan.max_pop }}</td>
+                                    <td class="text-end">
+                                        <div class="btn-group btn-group-sm">
+                                            <a class="btn btn-outline-primary" href="{{ ('blueonyx/plan/' ~ plan.id)|url }}">{{ plan.state == 'unmarked' ? 'Adopt'|trans : 'Edit'|trans }}</a>
+                                            <a class="btn btn-outline-secondary" href="{{ ('servicehosting/plan/' ~ plan.id)|url }}">{{ 'Open in Servicehosting'|trans }}</a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <h2 class="h4 mb-2">{{ 'No BlueOnyx plans yet'|trans }}</h2>
+                    <p class="text-secondary mb-4">{{ 'Create the first BlueOnyx hosting plan or adopt an existing generic hosting plan.'|trans }}</p>
+                    <a class="btn btn-primary" href="{{ 'blueonyx/plan/new'|url }}">{{ 'Create plan'|trans }}</a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
