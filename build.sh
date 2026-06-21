@@ -4,6 +4,12 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MANIFEST="${ROOT_DIR}/modules/Blueonyx/manifest.json"
 VERSION="$(sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "${MANIFEST}" | head -n 1)"
+STAGING_DIR="$(mktemp -d)"
+
+cleanup() {
+  rm -rf "${STAGING_DIR}"
+}
+trap cleanup EXIT
 
 if [[ -z "${VERSION}" ]]; then
   echo "Unable to determine version from ${MANIFEST}" >&2
@@ -35,9 +41,21 @@ ZIP_NAME="fossbilling-blueonyx-server-module-${VERSION}.zip"
 ZIP_PATH="${ROOT_DIR}/${ZIP_NAME}"
 
 rm -f "${ZIP_PATH}"
-cd "${ROOT_DIR}"
+
+mkdir -p "${STAGING_DIR}"
+cp "${ROOT_DIR}/README.md" "${STAGING_DIR}/BlueOnyx-README.md"
+cp "${ROOT_DIR}/CHANGELOG.md" "${STAGING_DIR}/CHANGELOG.md"
+cp "${ROOT_DIR}/HANDOVER.md" "${STAGING_DIR}/HANDOVER.md"
+cp "${ROOT_DIR}/LICENSE" "${STAGING_DIR}/LICENSE"
+cp "${ROOT_DIR}/SUN-modified-BSD-License.txt" "${STAGING_DIR}/SUN-modified-BSD-License.txt"
+cp "${ROOT_DIR}/build.sh" "${STAGING_DIR}/build.sh"
+cp -R "${ROOT_DIR}/docs" "${STAGING_DIR}/docs"
+cp -R "${ROOT_DIR}/modules" "${STAGING_DIR}/modules"
+cp -R "${ROOT_DIR}/library" "${STAGING_DIR}/library"
+
+cd "${STAGING_DIR}"
 zip -r "${ZIP_PATH}" \
-  README.md \
+  BlueOnyx-README.md \
   CHANGELOG.md \
   HANDOVER.md \
   LICENSE \

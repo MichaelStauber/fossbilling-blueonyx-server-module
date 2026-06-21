@@ -5,6 +5,30 @@ All notable changes to this repository will be documented in this file.
 The format below is intentionally release-oriented so it can be copied into
 GitHub Releases without additional editing.
 
+## [0.2.1] - 2026-06-20
+
+### Added
+
+- Release packaging now carries the current BlueOnyx server override source
+  so module activation can deploy the admin server template without failing
+- Blueonyx README is shipped in the ZIP as `Blueonyx-README.md` to keep the
+  GitHub-facing README filename untouched in the repository
+
+### Changed
+
+- Bumped the module release package to `0.2.1`
+- Tightened the release tree so it is directly publishable after zip build
+
+### Fixed
+
+- Activation no longer fails when the admin server template override source is
+  missing from the release tree
+- Checkout override references to the promo context are handled defensively
+
+### Security
+
+- No security-specific changes in this release
+
 ## [0.2.0] - 2026-06-20
 
 ### Added

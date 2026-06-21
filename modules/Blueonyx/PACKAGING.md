@@ -29,6 +29,7 @@ includes:
 
 - `admin/mod_order_manage.html.twig`
 - `admin/mod_servicehosting_manage.html.twig`
+- `admin/mod_blueonyx_server.html.twig`
 - `admin/partial_bb_meta.html.twig`
 - `client/mod_servicehosting_manage.html.twig`
 - `client/mod_orderbutton_checkout.html.twig`

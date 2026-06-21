@@ -44,7 +44,7 @@ self-describing and reproducible.
 2. Add a matching entry to `CHANGELOG.md`.
 3. Run `./build.sh`.
 4. Verify the ZIP contents.
-5. Create a Git tag such as `v0.2.0`.
+5. Create a Git tag such as `v0.2.1`.
 6. Publish the ZIP as a GitHub Release asset.
 
 ## Practical rules

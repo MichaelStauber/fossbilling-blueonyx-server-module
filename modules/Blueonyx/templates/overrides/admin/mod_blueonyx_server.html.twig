@@ -1,0 +1,209 @@
+{% extends 'layout_default.html.twig' %}
+
+{% block meta_title %}{{ 'BlueOnyx Hosting Server'|trans }}{% endblock %}
+
+{% set active_menu = 'system' %}
+{% set tlsVerify = server.config.tls_verify is defined ? server.config.tls_verify : true %}
+
+{% block breadcrumbs %}
+<ul class="breadcrumb">
+    <li class="breadcrumb-item">
+        <a href="{{ '/'|url }}">
+            <svg class="icon"><use href="#home" /></svg>
+        </a>
+    </li>
+    <li class="breadcrumb-item">
+        <a href="{{ 'blueonyx'|url }}">{{ 'BlueOnyx'|trans }}</a>
+    </li>
+    <li class="breadcrumb-item active" aria-current="page">{{ server.name }}</li>
+</ul>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <div>
+            <h3 class="card-title">{{ server.name }}</h3>
+            <p class="card-subtitle">{{ 'Manage connection details, provisioning settings, and nameserver defaults for this BlueOnyx server.'|trans }}</p>
+        </div>
+    </div>
+    <div class="card-body">
+        <form method="post" action="{{ 'servicehosting/server_update'|api_url }}" id="server-update" {{ fb_api_form({message: 'Server Updated'|trans}) }}>
+            <div class="mb-5">
+                <div class="mb-3">
+                    <h4 class="card-title mb-1">{{ 'Server Details'|trans }}</h4>
+                    <p class="text-secondary mb-0">{{ 'Basic identification and network details used when provisioning accounts on this server.'|trans }}</p>
+                </div>
+                <div class="row g-3">
+                    <div class="col-lg-6">
+                        <label class="form-label">{{ 'Name'|trans }}</label>
+                        <input class="form-control" type="text" name="name" value="{{ server.name }}" required>
+                    </div>
+                    <div class="col-lg-6">
+                        <label class="form-label">{{ 'Hostname'|trans }}</label>
+                        <input class="form-control" type="text" name="hostname" value="{{ server.hostname }}" placeholder="host1.domain.com">
+                    </div>
+                    <div class="col-lg-6">
+                        <label class="form-label">{{ 'IP'|trans }}</label>
+                        <input class="form-control" type="text" name="ip" value="{{ server.ip }}" required>
+                    </div>
+                    <div class="col-lg-6">
+                        <label class="form-label">{{ 'Enable/Disable'|trans }}</label>
+                        <div class="d-flex flex-wrap gap-3 pt-1">
+                            <label class="form-check">
+                                <input class="form-check-input" type="radio" name="active" value="1"{% if server.active %} checked{% endif %}>
+                                <span class="form-check-label">{{ 'Yes'|trans }}</span>
+                            </label>
+                            <label class="form-check">
+                                <input class="form-check-input" type="radio" name="active" value="0"{% if not server.active %} checked{% endif %}>
+                                <span class="form-check-label">{{ 'No'|trans }}</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">{{ 'Assigned IP Addresses'|trans }}</label>
+                        <textarea class="form-control" name="assigned_ips" rows="5">{% for value in server.assigned_ips %}{{ value }}{{ constant('PHP_EOL') }}{% endfor %}</textarea>
+                    </div>
+                </div>
+            </div>
+
+            <hr class="my-4" />
+
+            <div class="mb-5">
+                <div class="mb-3">
+                    <h4 class="card-title mb-1">{{ 'Connection Settings'|trans }}</h4>
+                    <p class="text-secondary mb-0">{{ 'BlueOnyx uses a fixed API adapter. Set the credentials used for API communication.'|trans }}</p>
+                </div>
+                <div class="row g-3">
+                    <div class="col-lg-4">
+                        <label class="form-label">{{ 'Server Manager'|trans }}</label>
+                        <input class="form-control" type="text" value="BlueOnyx APIv2" readonly>
+                        <input type="hidden" name="manager" value="Blueonyx">
+                    </div>
+                    <div class="col-lg-4">
+                        <label class="form-label">{{ 'Connection Port'|trans }}</label>
+                        <input class="form-control" type="number" name="port" min="1" max="65535" value="{{ server.port }}">
+                    </div>
+                    <div class="col-lg-4">
+                        <label class="form-label">{{ 'Password Length'|trans }}</label>
+                        <input class="form-control" type="number" name="passwordLength" min="1" max="100" value="{{ server.passwordLength }}">
+                    </div>
+                    <div class="col-lg-6">
+                        <label class="form-label">{{ 'Administrator username'|trans }}</label>
+                        <input class="form-control" type="text" name="username" value="{{ server.username }}" placeholder="admin" required>
+                    </div>
+                    <div class="col-lg-6">
+                        <label class="form-label">{{ 'Administrator password'|trans }}</label>
+                        <input class="form-control" type="password" name="password" value="{{ server.password }}">
+                    </div>
+                    <div class="col-lg-6">
+                        <label class="form-label">{{ 'Client-Secret'|trans }}</label>
+                        <input class="form-control" type="password" name="accesshash" value="{{ server.accesshash }}">
+                    </div>
+                    <div class="col-lg-6">
+                        <label class="form-label">{{ 'Use Secure Connection'|trans }}</label>
+                        <div class="d-flex flex-wrap gap-3 pt-1">
+                            <label class="form-check">
+                                <input class="form-check-input" type="radio" name="secure" value="1"{% if server.secure %} checked{% endif %}>
+                                <span class="form-check-label">{{ 'Yes'|trans }}</span>
+                            </label>
+                            <label class="form-check">
+                                <input class="form-check-input" type="radio" name="secure" value="0"{% if not server.secure %} checked{% endif %}>
+                                <span class="form-check-label">{{ 'No'|trans }}</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <label class="form-label">{{ 'Verify TLS Certificate'|trans }}</label>
+                        <div class="d-flex flex-wrap gap-3 pt-1">
+                            <label class="form-check">
+                                <input class="form-check-input" type="radio" name="tls_verify" value="1"{% if tlsVerify %} checked{% endif %}>
+                                <span class="form-check-label">{{ 'Yes'|trans }}</span>
+                            </label>
+                            <label class="form-check">
+                                <input class="form-check-input" type="radio" name="tls_verify" value="0"{% if not tlsVerify %} checked{% endif %}>
+                                <span class="form-check-label">{{ 'No'|trans }}</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <hr class="my-4" />
+
+            <div class="mb-5">
+                <div class="mb-3">
+                    <h4 class="card-title mb-1">{{ 'Optional Configuration'|trans }}</h4>
+                </div>
+                <div class="row g-3">
+                    <div class="col-lg-6">
+                        <label class="form-label">{{ 'Users Prefix'|trans }}</label>
+                        <input class="form-control" type="text" name="userprefix" value="{{ server.config.userprefix }}">
+                    </div>
+                </div>
+            </div>
+
+            <hr class="my-4" />
+
+            <div class="mb-4">
+                <div class="mb-3">
+                    <h4 class="card-title mb-1">{{ 'Nameservers'|trans }}</h4>
+                </div>
+                <div class="row g-3">
+                    <div class="col-lg-6"><label class="form-label">{{ 'Nameserver 1'|trans }}</label><input class="form-control" type="text" name="ns1" value="{{ server.ns1 }}"></div>
+                    <div class="col-lg-6"><label class="form-label">{{ 'Nameserver 2'|trans }}</label><input class="form-control" type="text" name="ns2" value="{{ server.ns2 }}"></div>
+                    <div class="col-lg-6"><label class="form-label">{{ 'Nameserver 3'|trans }}</label><input class="form-control" type="text" name="ns3" value="{{ server.ns3 }}"></div>
+                    <div class="col-lg-6"><label class="form-label">{{ 'Nameserver 4'|trans }}</label><input class="form-control" type="text" name="ns4" value="{{ server.ns4 }}"></div>
+                </div>
+            </div>
+
+            <input type="hidden" name="id" value="{{ server.id }}">
+            <div class="d-flex flex-wrap gap-2 justify-content-end">
+                <button class="btn btn-outline-primary" id="test-connection" type="button">{{ 'Update and Test Connection'|trans }}</button>
+                <button class="btn btn-primary" type="submit">{{ 'Update Server'|trans }}</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const formElement = document.getElementById('server-update');
+        const testConnectionButton = document.getElementById('test-connection');
+        const testConnectionAction = {{ 'blueonyx/server_test_connection'|api_url|json_encode|raw }};
+
+        testConnectionButton.addEventListener('click', function(event) {
+            event.preventDefault();
+
+            const formData = new FormData(formElement);
+            const data = formElement.getAttribute('method').toLowerCase() !== 'get'
+                ? FOSSBilling.tools.serializeFormDataToJSON(formData)
+                : FOSSBilling.tools.serializeFormData(formData);
+
+            FOSSBilling.api.makeRequest(
+                formElement.getAttribute('method'),
+                FOSSBilling.tools.getBaseURL(formElement.getAttribute('action')),
+                data,
+                (result) => FOSSBilling.api._afterComplete(formElement, result),
+                (error) => {
+                    FOSSBilling.message(`${error.message} (${error.code})`, 'error');
+                }
+            );
+
+            FOSSBilling.api.makeRequest(
+                'post',
+                FOSSBilling.tools.getBaseURL(testConnectionAction),
+                { id: {{ server.id }} },
+                () => {
+                    FOSSBilling.message(`{{ 'Server connected'|trans }}`, 'message');
+                },
+                (error) => {
+                    FOSSBilling.message(`${error.message} (${error.code})`, 'error');
+                }
+            );
+        });
+    });
+</script>
+{% endblock %}
