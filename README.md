@@ -46,7 +46,7 @@ This repository follows semantic versioning.
 
 - `modules/Blueonyx/manifest.json` contains the module version
 - `CHANGELOG.md` records user-facing changes
-- Git tags use the form `v<version>`, for example `v0.2.1`
+- Git tags use the form `v<version>`, for example `v0.2.2`
 
 ## Release artifact
 

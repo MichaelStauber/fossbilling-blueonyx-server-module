@@ -172,7 +172,7 @@
                     {% endif %}
 
                     {% if order.status == 'active' or order.status == 'failed_renew' %}
-                    {% set params = admin.extension_config_get({ 'ext': 'mod_order' }) %}
+                    {% set params = admin.extension_config_get({ 'ext': 'mod_order' })|default({}) %}
                     <a class="btn btn-primary"
                         {{ fb_api_link({href: 'order/renew'|api_url(query: {'id': order.id}), modal: {type: 'confirm', title: 'Are you sure?'|trans}, reload: true, timeoutMs: 180000 }) }}>
                         <svg class="icon" width="24" height="24">
@@ -181,7 +181,7 @@
                         <span>{{ 'Renew'|trans }}</span>
                     </a>
 
-                    {% if params.suspend_reason_list|trim == null %}
+                    {% if params.suspend_reason_list|default('')|trim == '' %}
                     <a class="btn btn-primary"
                         {{ fb_api_link({href: 'order/suspend'|api_url(query: {'id': order.id}), modal: {type: 'prompt', title: 'Suspension Reason'|trans, label: 'Reason for Suspension'|trans, key: 'reason'}, reload: true, timeoutMs: 180000 }) }}>
                         <svg class="icon" width="24" height="24">
@@ -273,8 +273,8 @@
             </div>
         </div>
         {% if order.status == 'active' or order.status == 'failed_renew' %}
-            {% set params = admin.extension_config_get({ 'ext': 'mod_order' }) %}
-            {% if params.suspend_reason_list|trim is not empty %}
+            {% set params = admin.extension_config_get({ 'ext': 'mod_order' })|default({}) %}
+            {% if params.suspend_reason_list|default('')|trim is not empty %}
                 <div class="modal modal-blur fade" id="suspendModal" tabindex="-1" aria-labelledby="suspendModalLabel" aria-hidden="true">
                     <div class="modal-dialog modal-dialog-centered modal-sm">
                         <div class="modal-content">
@@ -284,7 +284,7 @@
                                     <div class="modal-title" id="suspendModalLabel">{{ 'Suspension Reason'|trans }}</div>
                                     <input type="hidden" name="id" value="{{ order.id }}">
                                     <div class="mt-3 d-flex flex-column gap-2">
-                                        {% for reason in params.suspend_reason_list|trim|split("\r\n") %}
+                                        {% for reason in params.suspend_reason_list|default('')|trim|split("\r\n") %}
                                             <label class="form-check">
                                                 <input class="form-check-input" type="radio" name="reason" value="{{ reason }}"{% if loop.first %} checked{% endif %}>
                                                 <span class="form-check-label">{{ reason }}</span>

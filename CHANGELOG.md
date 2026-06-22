@@ -5,6 +5,25 @@ All notable changes to this repository will be documented in this file.
 The format below is intentionally release-oriented so it can be copied into
 GitHub Releases without additional editing.
 
+## [0.2.2] - 2026-06-21
+
+### Added
+
+- The admin order manage override now guards against missing `suspend_reason_list` values in the mod_order extension config
+
+### Changed
+
+- Bumped the module release package to `0.2.2`
+- Synced the GitHub checkout with the latest live BlueOnyx order manage template fix
+
+### Fixed
+
+- Opening an order in the admin area no longer crashes when the mod_order extension config does not provide a suspend reason list
+
+### Security
+
+- No security-specific changes in this release
+
 ## [0.2.1] - 2026-06-20
 
 ### Added

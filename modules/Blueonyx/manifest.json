@@ -4,7 +4,7 @@
   "name": "BlueOnyx Server Module",
   "description": "FOSSBilling integration for BlueOnyx hosting plans and service management",
   "license": "Modified BSD",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "icon_url": "icon.svg",
   "homepage_url": "https://www.blueonyx.it",
   "author": "Team BlueOnyx",

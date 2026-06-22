@@ -21,6 +21,7 @@ Core principles:
 - `library/Server/Manager/Blueonyx.php`
 - `modules/Blueonyx/`
 - module-owned BlueOnyx admin server page
+- current release baseline: `0.2.2`
 - typed BlueOnyx plan editor
 - BlueOnyx provisioning, suspend, resume, delete, change package, password
 - BlueOnyx provisioning, suspend, resume, delete, change package, password
@@ -35,6 +36,7 @@ Core principles:
 ## What still needs attention
 
 - Re-test the full module lifecycle after one deactivate/reactivate cycle.
+- Keep the order manage template defensive around optional mod_order config values such as suspend reason lists.
 - Verify `/admin/servicehosting` still routes BlueOnyx server entries to
   `/admin/blueonyx/server/:id` after reload.
 - Verify the customer service page still hides the username-change control
